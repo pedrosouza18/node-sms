@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const Nexmo = require('nexmo');
 const socketio = require('socket.io');
+const http = require('http');
+const debug = require("debug")("node");
 
 // Init Nexmo
 const nexmo = new Nexmo({
@@ -13,12 +15,28 @@ const nexmo = new Nexmo({
 // Init
 const app = express();
 
-// Template engine setup
-app.set('view engine', 'html');
-app.engine('html', ejs.renderFile);
+const normalizePort = val => {
+  var port = parseInt(val, 10);
 
-// Public folder setup
-app.use(express.static(__dirname + '/public'));
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+};
+
+// Template engine setup
+// app.set('view engine', 'html');
+// app.engine('html', ejs.renderFile);
+
+// // Public folder setup
+// app.use(express.static(__dirname + '/public'));
 
 // Body parser middleware
 app.use(bodyParser.json());
@@ -30,7 +48,7 @@ app.get('/', (req, res) => {
 });
 
 // Post
-app.post('/', (req, res) => {
+app.post('/send-sms', (req, res) => {
   // res.send(req.body);
   // console.log(req.body);
   const number = req.body.number;
@@ -55,13 +73,46 @@ app.post('/', (req, res) => {
   )
 });
 
-// Define port
-const port = 3000;
+const onListening = () => {
+  const addr = server.address();
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + port;
+  debug("Listening on " + bind);
+};
 
-// Start server
-const server = app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-});
+// Define port
+// const port = 3000;
+
+// // Start server
+// const server = app.listen(port, () => {
+//   console.log(`Server started on port ${port}`);
+// });
+
+const onError = error => {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + port;
+  switch (error.code) {
+    case "EACCES":
+      console.error(bind + " requires elevated privileges");
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(bind + " is already in use");
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+};
+
+const port = normalizePort(process.env.PORT || "3000");
+app.set("port", port);
+
+const server = http.createServer(app);
+server.on("error", onError);
+server.on("listening", onListening);
+server.listen(port);
 
 // Connect socket io
 const io = socketio(server);

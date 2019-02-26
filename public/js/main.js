@@ -12,7 +12,7 @@ const send = () => {
   const text = textInput.value;
   console.log('chamou');
   
-  fetch('/', {
+  fetch('/send-sms', {
     method: 'post',
     headers: {
       'Content-type': 'application/json'
